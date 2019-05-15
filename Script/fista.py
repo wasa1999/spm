@@ -24,31 +24,40 @@ class Fista:
         self.mae = 0.0
         self.current_score = 0.0
 
-    def soft_thresh(self, x, l):
-        return np.sign(x) * np.maximum(np.abs(x) - l, 0.)
+    def soft_thresh(self, x, t):
+        
+        l = len(x)
+        y = np.zeros(l)
+        for i in range(l):
+            if abs(v[i])<=t:
+                y[i]=0
+            else:
+                if v[i]>0:
+                    y[i]=v[i]-lam
+                elif v[i]<=0:
+                    y[i]=v[i]+lam
+        
+        return y
 
-    def fit(self, A, b):
+
+    def fit(self, A, y):
+        
         x = np.zeros(A.shape[1])
-        pobj = []
-        t = 1
-        z = x.copy()
-        L = linalg.norm(A) ** 2
-        time0 = time.time()
-        for _ in range(self.max_iter):
+        w = x.copy()
+        b = 0
+        L = linalg.norm(np.dot(A.T, A) ** 2)
+        
+        for i in range(1000):
             xold = x.copy()
-            z = z + A.T.dot(b - A.dot(z)) / L
-            x = self.soft_thresh(z, self.lambd / L)
-            t0 = t
-            t = (1. + sqrt(1. + 4. * t ** 2)) / 2.
-            z = x + ((t0 - 1.) / t) * (x - xold)
-            this_pobj = 0.5 * linalg.norm(A.dot(x) - b) ** 2 + l * linalg.norm(x, 1)
-            pobj.append((time.time() - time0, this_pobj))
-
-        times, pobj = map(np.array, zip(*pobj))
+            bold = b
+            m = w + (1/L * self.lambd) * np.dot(A.T, (y - np.dot(A, w)))
+            x = self.soft_threth(m, self.lambd / L)
+            b = 1/2 * (1 + np.sqrt(1 + 4 * (b * b)))
+            w = x + ((bold - 1) / (b)) * (x - xold)
+            
         self.coef_ = x
         return self
 
-    
     def predict(self, X):
         y = np.dot(X, self.coef_)
         return y
